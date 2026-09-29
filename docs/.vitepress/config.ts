@@ -3,6 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import container from 'markdown-it-container';
 import { defineConfig, type DefaultTheme } from 'vitepress';
+import { cryptCandle, vellumInk } from './syntax-themes';
 
 // GitHub Pages project sites live at https://<user>.github.io/<repo>/,
 // so `base` must be the repo name wrapped in slashes.
@@ -67,21 +68,22 @@ export default defineConfig({
   description: 'Study notebook for SI 679: Backend Development',
   base: `/${REPO_NAME}/`,
   cleanUrls: true,
+  appearance: 'dark', // dark by default; the toggle still switches to light
   lang: 'en-US',
   head: [
-    ['meta', { name: 'theme-color', content: '#2f5d3a' }],
+    ['meta', { name: 'theme-color', content: '#100b0d' }],
     ['link', { rel: 'preconnect', href: 'https://fonts.googleapis.com' }],
     ['link', { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' }],
     [
       'link',
       {
         rel: 'stylesheet',
-        href: 'https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Source+Sans+3:wght@400;600;700&display=swap',
+        href: 'https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Crimson+Pro:ital,wght@0,400;0,600;0,700;1,400&display=swap',
       },
     ],
   ],
   markdown: {
-    theme: { light: 'github-light', dark: 'github-dark' },
+    theme: { light: vellumInk, dark: cryptCandle },
     // `::: sticky Title` … `:::` renders a sticky note for real-life examples.
     config(md) {
       md.use(container, 'sticky', {
@@ -89,7 +91,7 @@ export default defineConfig({
           const token = tokens[idx];
           if (token.nesting !== 1) return '</div>\n';
           const title = token.info.trim().slice('sticky'.length).trim() || 'Real life';
-          return `<div class="sticky-note"><p class="sticky-note-title">📌 ${md.utils.escapeHtml(title)}</p>\n`;
+          return `<div class="sticky-note"><p class="sticky-note-title">🥀 ${md.utils.escapeHtml(title)}</p>\n`;
         },
       });
     },

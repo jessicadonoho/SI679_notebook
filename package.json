@@ -11,8 +11,10 @@
     "docs:preview": "vitepress preview docs"
   },
   "devDependencies": {
+    "@shikijs/themes": "^2.5.0",
     "@types/markdown-it-container": "^4.0.1",
     "markdown-it-container": "^4.0.0",
+    "shiki": "^2.5.0",
     "vitepress": "^1.6.4"
   }
 }
