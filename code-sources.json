@@ -1,0 +1,47 @@
+{
+  "$comment": "Which course folders get copied into the notebook. `from` is relative to the course folder (the parent of this repo by default; override with COURSE_DIR). `week` must match a notebook page: 'foundations' or a file name in docs/weeks/ without .md. Run `npm run sync-code` after editing.",
+  "sources": [
+    {
+      "slug": "practice",
+      "label": "TS practice (practice/)",
+      "from": "practice",
+      "week": "foundations"
+    },
+    {
+      "slug": "ts-basics",
+      "label": "TS basics exercise (ts-intro)",
+      "from": "si-679-f-26-ts-basics-jessicadonoho",
+      "week": "foundations"
+    },
+    {
+      "slug": "week01-nyt",
+      "label": "Week 1 in-class: Express intro",
+      "from": "si-679-f-26-week1-nyt-jessicadonoho",
+      "week": "week-01"
+    },
+    {
+      "slug": "week02-router",
+      "label": "Week 2 in-class: books router",
+      "from": "week2-router",
+      "week": "week-02"
+    },
+    {
+      "slug": "hw1",
+      "label": "HW1: SliceDrop API",
+      "from": "si-679-f-26-hw1-jessicadonoho",
+      "week": "week-02"
+    },
+    {
+      "slug": "week03-nyt",
+      "label": "Week 3 in-class: MongoDB + Vitest",
+      "from": "si-679-f-26-week03-nyt-jessicadonoho",
+      "week": "week-03"
+    },
+    {
+      "slug": "week04-nyt",
+      "label": "Week 4 in-class: REST layers",
+      "from": "si-679-f-26-week-04-nyt-jessicadonoho",
+      "week": "week-04"
+    }
+  ]
+}

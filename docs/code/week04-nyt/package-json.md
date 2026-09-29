@@ -1,0 +1,49 @@
+---
+title: "package.json · Week 4 in-class: REST layers"
+editLink: false
+---
+
+# `package.json`
+
+From **Week 4 in-class: REST layers** · original: `si-679-f-26-week-04-nyt-jessicadonoho/package.json` · [all files in this project](/code/week04-nyt/)
+
+```json:line-numbers
+{
+  "name": "week04-starter",
+  "version": "1.0.0",
+  "description": "SI 679 week 4 starter — REST layers",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "start": "node dist/index.js",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "express": "^5.2.1",
+    "mongodb": "^7.6.0"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^22.20.4",
+    "@types/supertest": "^7.2.1",
+    "mongodb-memory-server": "^11.2.0",
+    "supertest": "^7.2.2",
+    "tsx": "^4.23.13",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.1"
+  },
+  "allowScripts": {
+    "esbuild": false,
+    "fsevents": false,
+    "mongodb-memory-server": false
+  },
+  "config": {
+    "mongodbMemoryServer": {
+      "disablePostinstall": "1"
+    }
+  }
+}
+```
