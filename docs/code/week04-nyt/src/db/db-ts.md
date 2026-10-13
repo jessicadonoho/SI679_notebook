@@ -73,6 +73,22 @@ const getThroughID = async(
     return await theDb.collection(collectionName).findOne({ _id: new ObjectId(id) });
 
 }
+
+const deleteThroughID = async(
+  id: string,
+  collectionName:string
+):Promise<Number | null> => {
+  if(!mongoClient){
+    await init();
+  }
+  if (!ObjectId.isValid(id)){
+    return null
+  }
+  const result = await theDb.collection(collectionName).deleteOne({ _id: new ObjectId(id) });
+  return result.deletedCount;
+}
+
+
 // Neither of these is for the app. The app connects once at startup and
 // then runs until you stop it, so it never needs to hang up or to empty
 // a collection. Tests need both.
@@ -95,7 +111,8 @@ export const db = {
   getAllInCollection,
   addToCollection,
   getThroughID,
-  disconnect, 
+  disconnect,
+  deleteThroughID,
   _clearCollection,
   PRODUCTS
 };

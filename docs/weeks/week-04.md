@@ -333,14 +333,46 @@ A long reference guide for designing RESTful HTTP APIs. The core points:
 
 ### Stack Overflow Blog: Best practices for REST API design
 
-::: warning Not summarized yet
-This reading isn't in the course folder. Add a summary here once you've read it, or export it as a PDF for the notebook.
-:::
+A shorter, Express-flavored checklist (John Au-Yeung & Ryan Donovan, 2020). The goal: APIs that are easy to understand, future-proof, secure, and fast. The rules:
+
+- **Accept and respond with JSON.** Parse request bodies as JSON (`bodyParser.json()`, today's `express.json()`), send with `res.json()`, which sets `Content-Type: application/json`. XML and form data are more work for ordinary text and numbers.
+- **Nouns, not verbs, in paths.** The HTTP method already *is* the verb: `GET /articles`, `POST /articles`, `PUT /articles/:id`, `DELETE /articles/:id`. Verbs in paths add length and vary by developer ("get" vs "retrieve").
+- **Plural collection names**: `/articles`, not `/article`.
+- **Nest logically, but not too deep.** Child resources go after their parent: `/articles/:articleId/comments`. Past two or three levels, return a link instead (`"author": "/users/:userId"`) rather than `/articles/:id/comments/:id/author`. Nesting should follow how clients think, **not mirror the database**, which also avoids handing attackers information.
+- **Standard error codes, with a message.** 400 (bad input), 401 (not logged in), 403 (logged in but not allowed), 404, 500 (generic server error; shouldn't be thrown on purpose), 502, 503. Messages should help the client fix the problem without revealing internals an attacker could use.
+- **Filtering, sorting, pagination** through the query string (`/employees?lastName=Smith&age=30`, `?page=2`, `?sort=+author,-datepublished`) so you never send the whole database at once.
+- **Security:** always SSL/TLS, and the **principle of least privilege**: users can see only what they need (no other users' data, no admin data), managed with roles.
+- **Caching** (e.g. `apicache` middleware) for speed, at the cost of sometimes-stale data. Send `Cache-Control` headers if you cache.
+- **Versioning** (`/v1/employees`, `/v2/employees`) so breaking changes don't break existing clients.
+
+**Connection to lecture:** the same noun/plural/method rules as the Microsoft reading, in Express code. One difference: the article uses **PUT** for updates, while the lecture's API uses **PATCH**, because a partial update is what PATCH means. The query-string filtering pattern shows up in Week 5 as `GET /products?lowStock=true`, and the 401/403 split is next week's topic (authentication vs. authorization).
 
 ### Corey Cleary: Project structure for an Express REST API
 
-::: warning Not summarized yet
-This reading isn't in the course folder. Add a summary here once you've read it. It's the source for the routes → controllers → services layout this week builds.
+The source for this week's layered layout. Cleary's main point is that Node has **no standard project structure**, so instead of asking "what's the best folder layout?", ask **"where does each type of logic go?"** Put logic in the right place and a structure falls out naturally, whether you group by layer (`controllers/`, `services/`, …) or by feature.
+
+He splits API code into two kinds of logic:
+
+| Kind | Layers | What goes there |
+|---|---|---|
+| **HTTP logic** | **routes** | map requests to controller functions. *No* logic |
+| | **controllers** | "orchestrators": pull what's needed out of `req`, call services, choose the status code, send the response |
+| **Business logic** | **services** | the actual work: business rules, calling the data layer, calling external APIs (e.g. posting to Twitter when a blog post is created) |
+| | **data access** (`db/`) | talking to whatever stores data (a database, Redis, Elasticsearch) |
+
+Other points:
+
+- **Express stops at the controller.** Don't pass `req` into services. Destructure the pieces you need and pass those. Otherwise the whole app depends on Express, is harder to test, and is harder to move to another framework.
+- **Avoid "fat controllers".** Even a service that only calls the database is worth having. When requirements grow, that logic would otherwise pile up in the controller and become hard to test.
+- **`utils/`** holds general helpers that aren't about your domain at all (e.g. converting milliseconds to minutes).
+- **`app.js`** wires middleware and routes together.
+- **Tests:** he keeps them in a root `tests/` folder mirroring the app, and skips route tests, since routes contain no logic. Separate unit and integration folders only if you have many integration tests.
+- In the article's controller, errors are handled with `try/catch` in each controller and a `500`.
+
+**Connection to lecture:** this is the routes → controllers → services → db layout, and the "a layer only knows the layer below it" rule. Where the course differs: tests sit beside the code they test or in `src/__tests__/`, routes *are* tested end-to-end with Supertest, and in [Week 5](/weeks/week-05#custom-errors-and-the-error-handling-middleware) errors flow to one error-handling middleware instead of a `try/catch` in each controller.
+
+::: info Revised in Week 5
+Week 5 moves the `_id` → `id` conversion out of the models and into a **repository** in the db layer, and models become types only. See [What changed since Week 4](/weeks/week-05#what-changed-since-week-4).
 :::
 
 ## Gotchas & common mistakes

@@ -20,4 +20,6 @@ productRouter.get('/', productControllers.getProducts);
 productRouter.post('/', productControllers.addProduct);
 
 productRouter.get('/:id', productControllers.getProductById);
+
+productRouter.delete('/:id', productControllers.deleteProductById);
 ```

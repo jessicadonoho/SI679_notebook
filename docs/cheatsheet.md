@@ -56,17 +56,18 @@ npm install -D typescript tsx vitest supertest mongodb-memory-server \
 
 **`.gitignore`**: `node_modules` and `dist`.
 
-**Folder layout** (Week 4):
+**Folder layout** (Week 5):
 
 ```
 src/
-├── db/            talk to MongoDB
-├── models/        types + converters
-├── services/      application logic
+├── db/            db.ts (connect/getDb) + <resource>-repository.ts (Mongo ⇄ Product)
+├── models/        types only (Product, NewProduct, ProductFields)
+├── services/      business logic: Products in, Products out (+ *.unit.test.ts)
 ├── controllers/   read req, call service, send res
 ├── routes/        endpoint → controller
 ├── middleware/    error handler, auth, logging…
-├── __tests__/     *.test.ts
+├── __tests__/     *.e2e.test.ts + seed data
+├── errors.ts      custom error classes (ValidationError)
 ├── app.ts         builds + exports the app (no listen)
 └── index.ts       connects db, then listens
 ```
@@ -447,6 +448,34 @@ export const productControllers = { getProduct };
 productRouter.get('/:id', productControllers.getProduct);
 ```
 
+## Repository + business logic + custom errors (Week 5)
+
+*Explained in [Week 5](/weeks/week-05#the-repository-pattern).* The Week 5 version of the layers: the repository converts, the service enforces rules, errors become status codes in one place.
+
+```ts
+// db/products-repository.ts: the ONLY place that knows about Mongo
+export const updateProduct = async (id: string, changes: ProductFields): Promise<Product | null> => {
+  const doc = await getDb().collection(PRODUCTS)
+    .findOneAndUpdate({ _id: new ObjectId(id) }, { $set: changes }, { returnDocument: 'after' });
+  return doc ? toProduct(doc) : null;
+};
+
+// services/products-service.ts: business rules, checked BEFORE writing
+const existing = await productsRepository.findProduct(id);
+if (!existing) return null;                                   // controller → 404
+if ((changes.price ?? existing.price) < 0) throw new ValidationError('price cannot be negative');
+return productsRepository.updateProduct(id, changes);
+
+// errors.ts
+export class ValidationError extends Error {}
+
+// middleware/error-handler.ts (registered last in app.ts)
+if (err instanceof ValidationError) { res.status(400).json({ error: err.message }); return; }
+res.status(500).json({ error: 'Something went wrong' });
+```
+
+Naming: controller = HTTP verbs (`patchProduct`) · service = CRUD (`updateProduct`) · repository = Mongo (`findProduct`, `insertProduct`).
+
 ## Testing (Vitest + Supertest + MongoMemoryServer)
 
 *Explained in [Week 2](/weeks/week-02#e2e-testing-with-supertest), [Week 3](/weeks/week-03#vitest-matchers), and [Week 4](/weeks/week-04#testing-with-mongomemoryserver).*
@@ -509,6 +538,40 @@ await request(app).delete(`/products/${'a'.repeat(24)}`);
 | `.not.…` | inverts any matcher (pair it with a positive one) |
 | `await expect(p).rejects.toThrow()` | an async function throws |
 
+**Unit tests with mocks and spies** (*[Week 5](/weeks/week-05#fakes-mocks-and-spies)*). File sits beside the code: `products-service.unit.test.ts`.
+
+```ts
+import { beforeEach, expect, it, vi } from 'vitest';
+import * as productsService from './products-service.js';                // what we TEST
+import * as productsRepository from '../db/products-repository.js';      // what we MOCK
+
+beforeEach(() => { vi.restoreAllMocks(); });                             // real functions back
+
+it('writes nothing when quantity would go negative', async () => {
+  vi.spyOn(productsRepository, 'findProduct').mockResolvedValue(makeProduct({ quantity: 10 }));  // arrange
+  const update = vi.spyOn(productsRepository, 'updateProduct');                                  // watch only
+
+  await expect(productsService.updateProduct('abc', { quantity: -1 }))                          // act
+    .rejects.toThrow(ValidationError);                                                           // assert
+  expect(update).not.toHaveBeenCalled();
+});
+```
+
+| Tool | Does |
+|---|---|
+| `vi.fn()` | new fake; records calls, returns `undefined` |
+| `.mockReturnValue(x)` / `.mockReturnValueOnce(x)` | answer `x` always / next call only |
+| `.mockResolvedValue(x)` / `.mockRejectedValue(err)` | async: promise succeeds with `x` / fails with `err` |
+| `.mockImplementation((a) => …)` | real behavior for the fake |
+| `vi.spyOn(obj, 'f')` | record calls to a real function (it still runs) |
+| `vi.spyOn(obj, 'f').mockResolvedValue(x)` | **replace** a real function |
+| `vi.restoreAllMocks()` | undo every spy (put in `beforeEach`) |
+| `toHaveBeenCalled()` / `toHaveBeenCalledTimes(n)` / `toHaveBeenCalledWith(a, b)` / `.not.toHaveBeenCalled()` | check the record |
+
+Fake `res` for a controller test: `const res = { status: vi.fn(), json: vi.fn() }; res.status.mockReturnValue(res);`
+
+Run subsets: `npm run test:unit` (`vitest run unit.test`) · `npm run test:e2e` (`vitest run e2e.test`) · `it.todo('…')` = planned test.
+
 **Without a database** (Week 2): reset in-memory state with `beforeEach(() => { _resetCatalog(); });`.
 
 **`vitest.config.ts`** (needed for MongoMemoryServer):
@@ -543,5 +606,9 @@ export default defineConfig({ test: { hookTimeout: 120_000, testTimeout: 20_000 
 | test passes once, fails on rerun | leftover data: use MongoMemoryServer + `beforeEach` clear |
 | `Hook timed out in 10000ms` | `vitest.config.ts` missing (MongoMemoryServer needs longer) |
 | `toBe` fails on identical objects | use `toEqual` |
+| `No test suite found in file` | a test file with no `it(...)` yet: add a test or an `it.todo` |
+| unit test: `Cannot read properties of undefined (reading 'collection')` | the code under test called a repository function you didn't mock |
+| unit test passes no matter what | you mocked the function under test, not the layer below it |
+| `expect(...).rejects` test passes when it shouldn't | missing `await` before `expect` |
 | error handler never runs | registered before the routes, or has only 3 parameters |
 | code with type errors runs anyway | `tsx` doesn't type-check: run `npm run typecheck` |

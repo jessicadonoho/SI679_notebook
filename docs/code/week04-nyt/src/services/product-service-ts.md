@@ -47,9 +47,16 @@ const getProductById = async (id: string): Promise<Product | null> => {
     return productFromDocument(productDoc);
 }
 
+const deleteProductById = async (id:string) : Promise<Boolean | null > =>{
+    const deletedCount = await db.deleteThroughID(id, db.PRODUCTS);
+    return deletedCount === 1;
+
+}
+
 export const productService = {
     getAll,
     add,
-    getProductById
+    getProductById,
+    deleteProductById
 };
 ```

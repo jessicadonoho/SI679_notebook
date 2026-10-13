@@ -42,11 +42,20 @@ const getProductById = async (req: Request, res: Response): Promise<void> => {
     res.json(product);
 };
 
+const deleteProductById = async (req:Request, res:Response): Promise<void>=>{
+    const deleted = await productService.deleteProductById(String(req.params.id));
+    if (!deleted){
+        res.status(404).send({error:`Product with id of ${req.params.id} not found`})
+    }
+    res.status(204)
+}
+
 // FIXED: added getProductById to the export so the routes layer can use it
 // (routes still need to be wired up -- that part is untouched).
 export const productControllers = {
     getProducts,
     addProduct,
-    getProductById
+    getProductById,
+    deleteProductById
 };
 ```

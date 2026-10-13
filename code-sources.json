@@ -42,6 +42,12 @@
       "label": "Week 4 in-class: REST layers",
       "from": "si-679-f-26-week-04-nyt-jessicadonoho",
       "week": "week-04"
+    },
+    {
+      "slug": "week05-nyt",
+      "label": "Week 5 in-class: testing",
+      "from": "si-679-f-26-week05-nyt-jessicadonoho",
+      "week": "week-05"
     }
   ]
 }
