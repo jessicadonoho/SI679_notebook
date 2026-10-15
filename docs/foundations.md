@@ -109,6 +109,157 @@ const bookToAdd: Book = { id, title, author, year, status };
 // same as { id: id, title: title, author: author, … }
 ```
 
+### Loops and array methods
+
+A **loop** runs the same block of code over and over. **Iterating** over an array means visiting each element in turn. JavaScript gives you two styles for this:
+
+- **Loop statements** (`for`, `for...of`, `while`): you write the steps, and you can stop early.
+- **Array methods** (`map`, `filter`, `reduce`, …): you pass a callback, and the method does the looping for you and usually **returns a new array**.
+
+Backend code uses both. Validation code often loops so it can collect errors item by item, while repositories and services use `map` and `filter` to reshape data.
+
+#### The classic `for` loop
+
+```ts
+for (let i = 0; i < items.length; i++) {
+  console.log(i, items[i]);
+}
+```
+
+The three parts are: **start** (`let i = 0`), **keep going while** (`i < items.length`) and **after each pass** (`i++`, which adds 1). Use this form when you need the **index** (the position number), for example to build an error message like `items[2].quantity must be …`. It has to be `let`, not `const`, because `i++` reassigns `i`.
+
+#### `for...of`: loop over the values
+
+`for...of` hands you each **value** directly, with no index to manage. It's the most common loop in the course code:
+
+```ts
+// hw1/src/validation/validate-order.ts
+for (const item of body.items) {
+  // check each item in the order…
+}
+
+// week05-nyt/src/__tests__/products.e2e.test.ts
+for (const product of res.body) {
+  expect(product.id).toMatch(/^[0-9a-f]{24}$/);
+}
+```
+
+Here `const` is fine: each pass gets a brand-new `item` variable. If you need the index too, use `for (const [i, item] of items.entries())`. It uses array [destructuring](#destructuring), covered in the next section.
+
+#### `for...in`: loop over the keys (avoid it for arrays)
+
+`for...in` walks an object's **keys** (property names). On an array the keys are the indexes, but as **strings** (`"0"`, `"1"`, …), not numbers, which causes subtle bugs. Use `for...of` for arrays. For objects, the clearer option is the `Object` helpers:
+
+```ts
+const sizePrices = { small: 1000, large: 1600 };
+
+Object.keys(sizePrices);    // ["small", "large"]
+Object.values(sizePrices);  // [1000, 1600]
+Object.entries(sizePrices); // [["small", 1000], ["large", 1600]]
+
+for (const [size, price] of Object.entries(sizePrices)) {
+  console.log(`${size}: ${price}`);
+}
+```
+
+#### `while`, `break` and `continue`
+
+`while (condition) { … }` repeats as long as the condition is true. It's useful when you don't know the number of passes ahead of time, but it's rare in this course. Inside any loop statement:
+
+- `break` **stops the whole loop** immediately.
+- `continue` **skips to the next pass**.
+
+These only work in loop statements. You can't `break` out of `forEach` or `map`.
+
+#### Array methods
+
+Each method below takes a callback (usually an [arrow function](#functions-and-arrow-functions)) and calls it once per element. The callback gets the element first, then optionally its index: `(item, i) => …`.
+
+**`forEach`** runs the callback for its **side effect** (something it does, like printing, rather than a value it returns). It returns `undefined`, so there's nothing to save:
+
+```ts
+// ts-basics/src/index.ts
+catalog.forEach((book) => console.log(`- ${book.title} (${book.year})`));
+```
+
+**`map`** **transforms** each element and returns a new array of the **same length**. This is how the repositories turn raw MongoDB documents into the app's own type:
+
+```ts
+// week05-nyt/src/db/products-repository.ts
+return docs.map((doc) => toProduct(doc));   // Document[] → Product[]
+```
+
+**`filter`** keeps the elements whose callback returns `true`, and returns a new array that is **the same length or shorter**:
+
+```ts
+// week05-nyt/src/services/products-service.ts
+return products.filter((product) => product.quantity < threshold);
+```
+
+**`find`, `some`, `every`, `includes`** answer questions about the array instead of building a new one:
+
+| Method | Question it answers | Returns |
+|---|---|---|
+| `find(cb)` | which element is the first match? | the element, or `undefined` |
+| `findIndex(cb)` | where is the first match? | its index, or `-1` |
+| `some(cb)` | does **at least one** match? | `true` / `false` |
+| `every(cb)` | do **all** match? | `true` / `false` (and `true` for an empty array) |
+| `includes(value)` | is this exact value in it? | `true` / `false` |
+
+These stop as soon as they know the answer, so they're also how you "break early" with methods. HW1's tests use `every` to check a whole response: `res.body.every((i) => i.category === "pizza")`.
+
+**`reduce`** **combines** every element into one value, like a total. The callback gets a running result (the **accumulator**) and the current element, and whatever it returns becomes the accumulator for the next element. The second argument is the starting value:
+
+```ts
+// illustrative, not from course code
+const items = [
+  { name: "Margherita", price: 1200, quantity: 2 },
+  { name: "Garlic Knots", price: 500, quantity: 1 },
+];
+const totalCents = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+// 0 → 2400 → 2900
+```
+
+Always pass the starting value (the `0`). Without it, `reduce` on an empty array throws a `TypeError`.
+
+**Chaining:** each method that returns an array can feed straight into the next one:
+
+```ts
+const lowStockNames = products
+  .filter((p) => p.quantity < 5)
+  .map((p) => p.modelName);
+```
+
+::: sticky Real life: sorting the mail
+`forEach` is **reading** every letter aloud: you get nothing back. `map` is **stamping** every envelope: same pile, every item changed. `filter` is **tossing the junk mail**: a smaller pile of the same letters. `find` is "**hand me the first one from the bank**." `reduce` is **adding up all the bills** into one number.
+:::
+
+#### Which one should I use?
+
+| You want to… | Use |
+|---|---|
+| change every element into something else | `map` |
+| keep only some elements | `filter` |
+| get one element | `find` |
+| get a yes/no answer | `some` / `every` / `includes` |
+| boil the array down to one value | `reduce` |
+| do something with each element (print, push to another array) | `for...of` (or `forEach`) |
+| stop early, or `await` inside the loop | `for...of` (see [Loops with `await`](#loops-with-await)) |
+| use the index | classic `for`, or `for (const [i, x] of arr.entries())` |
+
+#### Types in loops
+
+TypeScript usually **infers** the callback's parameter type from the array (fully explained in [Part 2](#type-annotations-and-inference)): in `products.filter((product) => …)`, `product` is already a `Product`, so you don't annotate it. The exception is an array typed `any`, like a Supertest `res.body`. That's why the tests write the type out:
+
+```ts
+// week05-nyt/src/__tests__/products.e2e.test.ts
+const manufacturers = res.body.map((product: Product) => product.manufacturer);
+```
+
+::: warning `sort` changes the original array
+Unlike `map` and `filter`, `sort` **mutates** the array in place. Its default order also compares values **as strings**, so `[10, 9, 1].sort()` gives `[1, 10, 9]`. For numbers, pass a compare function: `.sort((a, b) => a - b)`. To keep the original intact, copy it first with `[...arr].sort(…)`, or use `arr.toSorted(…)` (Node 20+).
+:::
+
 ### Destructuring
 
 Destructuring pulls properties out of an object into variables. This is how nearly every Express handler in the course reads its input:
@@ -193,6 +344,42 @@ At a busy counter you order, and they hand you a **buzzer**, not the food. The b
 
 ::: tip Extra context
 Express 5 (which the course uses) automatically sends a rejected promise from an `async` route handler to your error handler (the special function that turns errors into responses, covered in [Week 2](/weeks/week-02#error-handling-middleware)). In Express 4 you had to wrap handlers in `try/catch` and call `next(err)` yourself.
+:::
+
+### Loops with `await`
+
+Once a function inside a loop becomes `async` (for example, because it now looks something up in the database), the loop has to wait for it. Only some loop styles can do that:
+
+```ts
+// illustrative: checkItem is async and pushes to errors
+async function validate(ids: string[]): Promise<string[]> {
+  const errors: string[] = [];
+
+  for (const id of ids) {
+    checkItem(id, errors);            // ❌ no await: returns errors before any check finishes
+  }
+
+  ids.forEach(async (id) => {
+    await checkItem(id, errors);      // ❌ forEach ignores the Promise the callback returns
+  });
+
+  for (const id of ids) {
+    await checkItem(id, errors);      // ✅ one at a time, in order
+  }
+
+  await Promise.all(ids.map((id) => checkItem(id, errors)));  // ✅ all at once, wait for every one
+
+  return errors;
+}
+```
+
+In the two broken versions, `validate` returns an **empty** `errors` array, and the errors are pushed later, after nobody is looking. Nothing crashes, so the bug is easy to miss. In tests it looks like "validation never rejects anything."
+
+- **`for...of` + `await`** runs the checks **one after another**. It's simple, and the order is guaranteed.
+- **`Promise.all(array.map(…))`** starts all of them at once. `map` produces an array of Promises, and `Promise.all` turns it into one Promise that settles when they're all done. It's faster when the checks don't depend on each other.
+
+::: sticky Real life: the restaurant buzzer, again
+A `forEach` with `async` is handing out a buzzer for each order and then **leaving the restaurant** before any of them goes off. `for...of` + `await` is waiting for each buzzer before ordering the next dish. `Promise.all` is ordering everything at once and waiting until the **last** buzzer goes off.
 :::
 
 ---
